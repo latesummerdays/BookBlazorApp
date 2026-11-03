@@ -11,5 +11,6 @@ namespace BlazorApp10.Data
 
         }
         public DbSet<Book> Books { get; set; }
+        //test test tett
     }
 }
