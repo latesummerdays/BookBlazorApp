@@ -1,0 +1,153 @@
+﻿@page "/books"
+@using BlazorApp10.Interfaces.Services
+@rendermode Microsoft.AspNetCore.Components.Web.RenderMode.InteractiveServer
+
+@inject IBookService BookService
+
+<h3>Zarządzanie książkami</h3>
+<h4>Lista Książek</h4>
+<button @onclick="LoadBooks">Odśwież</button>
+
+@if (bookList.Count == 0)
+{
+    <p>Brak książek w bazie.</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Tytuł</th>
+                <th>Autor</th>
+                <th>Kategoria</th>
+                <th>Rok wydania</th>
+                <th>Dostępna</th>
+                <th>Akcje</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in bookList)
+            {
+                <tr>
+                    <td>@item.Id</td>
+                    <td>@item.Title</td>
+                    <td>@item.Author</td>
+                    <td>@item.Category</td>
+                    <td>@item.PublicationYear</td>
+                    <td>@(item.IsAvailable ? "Tak" : "Nie")</td>
+                    <td>
+                        <button @onclick="() => DeleteBook(item.Id)">
+                            Usuń
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<hr />
+<h4>Dodaj książkę</h4>
+<EditForm Model="newBook" OnSubmit="AddBook">
+    <div class="mb-2">
+        <label>Tytuł:</label>
+        <InputText class="form-control" @bind-Value="newBook.Title" />
+    </div>
+
+    <div class="mb-2">
+        <label>Autor:</label>
+        <InputText class="form-control" @bind-Value="newBook.Author" />
+    </div>
+
+    <div class="mb-2">
+        <label>Kategoria:</label>
+        <InputText class="form-control" @bind-Value="newBook.Category" />
+    </div>
+
+    <div class="mb-2">
+        <label>Rok wydania:</label>
+        <InputText class="form-control" @bind-Value="newBook.PublicationYear" />
+    </div>
+
+    <div class="mb-2">
+        <InputCheckbox @bind-Value="newBook.IsAvailable" />
+        <label>Dostępna</label>
+    </div>
+
+    <button type="submit">Dodaj książkę</button>
+</EditForm>
+
+<p>@message</p>
+
+<hr />
+<h4>Wyszukaj książkę po ID</h4>
+<InputNumber class="form-control" @bind-Value="searchId" />
+<button @onclick="FindBook">Szukaj</button>
+
+@if (foundBook != null)
+{
+    <p><b>ID:</b> @foundBook.Id</p>
+    <p><b>Tytuł:</b> @foundBook.Title</p>
+    <p><b>Autor:</b> @foundBook.Author</p>
+    <p><b>Kategoria:</b> @foundBook.Category</p>
+    <p><b>Rok wydania:</b> @foundBook.PublicationYear</p>
+    <p><b>Dostępna:</b> @(foundBook.IsAvailable ? "Tak" : "Nie")</p>
+}
+
+@code {
+    private List<BlazorApp10.Models.Book> bookList = new();
+
+    private BlazorApp10.Models.Book newBook = new();
+
+    private BlazorApp10.Models.Book? foundBook;
+
+    private int searchId;
+    private string message = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBooks();
+    }
+
+    private async Task LoadBooks()
+    {
+        bookList = await BookService.GetAllAsync();
+    }
+
+    private async Task AddBook()
+    {
+        bool result = await BookService.AddAsync(newBook);
+
+        if (result)
+        {
+            message = "Dodano książkę!";
+            newBook = new BlazorApp10.Models.Book();
+            await LoadBooks();
+        }
+        else
+        {
+            message = "Nie udało się dodać książki.";
+        }
+    }
+
+    private async Task DeleteBook(int id)
+    {
+        bool result = await BookService.DeleteAsync(id);
+
+        message = result
+            ? "Usunięto książkę!"
+            : "Nie udało się usunąć książki.";
+
+        await LoadBooks();
+    }
+
+    private async Task FindBook()
+    {
+        foundBook = await BookService.GetByIdAsync(searchId);
+
+        message = foundBook == null
+            ? "Nie znaleziono książki."
+            : "";
+    }
+}
